@@ -77,6 +77,12 @@ function configure_climate() {
     iniset $CLIMATE_CONF DEFAULT notify_to $CLIMATE_NOTIFICATION_EMAIL
 
     iniset $CLIMATE_CONF database connection $(database_connection_url climate)
+
+    # Yeah, we'll screw with nova.conf here. We are nasty.
+    iniset $NOVA_CONF DEFAULT reservation_length_days 0
+    iniset $NOVA_CONF DEFAULT reservation_length_hours 0
+    iniset $NOVA_CONF DEFAULT reservation_length_minutes 10
+    iniset $NOVA_CONF DEFAULT reservation_start_date "now"
 }
 
 function init_climate() {
