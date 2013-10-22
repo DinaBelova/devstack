@@ -1,0 +1,111 @@
+# lib/climate
+# Functions to control the configuration and operation of **Climate**
+
+# Dependencies:
+# ``functions`` file
+# ``lib/database`` file
+
+# ``stack.sh`` calls the entry points in this order:
+#
+# install_climate
+# configure_climate
+# init_climate
+# start_climate
+# stop_climate
+# cleanup_climate
+
+# Save trace setting
+XTRACE=$(set +o | grep xtrace)
+set +o xtrace
+
+
+# Defaults
+# --------
+
+# Set up default directories
+CLIMATE_DIR=$DEST/climate
+CLIMATECLIENT_DIR=$DEST/python-climateclient
+CLIMATE_CONF_DIR=${CLIMATE_CONF_DIR:-/etc/climate}
+CLIMATE_CONF=$CLIMATE_CONF_DIR/climate.conf
+CLIMATE_BIN_DIR=$(get_python_exec_prefix)
+
+# Public facing bits
+CLIMATE_SERVICE_HOST=${CLIMATE_SERVICE_HOST:-$SERVICE_HOST}
+CLIMATE_SERVICE_PORT=${CLIMATE_SERVICE_PORT:-1234}
+
+# Notifications configuration
+CLIMATE_NOTIFICATION_TIMING=${CLIMATE_NOTIFICATION_TIMING:--5m,-3m}
+CLIMATE_NOTIFICATION_EMAIL=${CLIMATE_NOTIFICATION_EMAIL:-user@example.com}
+
+function install_climate() {
+    git_clone $CLIMATE_REPO $CLIMATE_DIR $CLIMATE_BRANCH
+    setup_develop $CLIMATE_DIR
+}
+
+function install_climateclient() {
+    git_clone $CLIMATECLIENT_REPO $CLIMATECLIENT_DIR $CLIMATECLIENT_BRANCH
+    setup_develop $CLIMATECLIENT_DIR
+}
+
+function configure_climate() {
+    if [[ ! -d $CLIMATE_CONF_DIR ]]; then
+        sudo mkdir -p $CLIMATE_CONF_DIR
+    fi
+    sudo chown $STACK_USER $CLIMATE_CONF_DIR
+
+    if [[ "$CLIMATE_CONF_DIR" != "$CLIMATE_DIR/etc" ]]; then
+        cp -p $CLIMATE_DIR/etc/climate.conf.example $CLIMATE_CONF
+    fi
+
+    iniset $CLIMATE_CONF DEFAULT debug "$ENABLE_DEBUG_LOG_LEVEL"
+    iniset $CLIMATE_CONF DEFAULT log-exchange "$ENABLE_DEBUG_LOG_LEVEL"
+
+    iniset $CLIMATE_CONF DEFAULT host $CLIMATE_SERVICE_HOST
+    iniset $CLIMATE_CONF DEFAULT rabbit_password $RABBIT_PASSWORD
+    
+    iniset $CLIMATE_CONF DEFAULT os_auth_host $KEYSTONE_AUTH_HOST
+    iniset $CLIMATE_CONF DEFAULT os_auth_port $KEYSTONE_AUTH_PORT
+    iniset $CLIMATE_CONF DEFAULT os_admin_tenant_name $SERVICE_TENANT_NAME
+    iniset $CLIMATE_CONF DEFAULT os_admin_username climate
+    iniset $CLIMATE_CONF DEFAULT os_admin_password $SERVICE_PASSWORD
+    if is_service_enabled tls-proxy; then
+        iniset $CLIMATE_CONF DEFAULT os_auth_protocol $KEYSTONE_AUTH_PROTOCOL
+    fi
+    iniset $CLIMATE_CONF DEFAULT os_auth_version "v3.0"
+    
+    iniset $CLIMATE_CONF DEFAULT notifications $CLIMATE_NOTIFICATION_TIMING
+    iniset $CLIMATE_CONF DEFAULT notify_to $CLIMATE_NOTIFICATION_EMAIL
+
+    iniset $CLIMATE_CONF database connection $(database_connection_url climate)
+}
+
+function init_climate() {
+    # (Re)create climate database
+    recreate_database climate utf8
+
+    # Initialize climate database
+    # Dina promised to provide smth like this. Currently it's run from the manager
+    # $CLIMATE_DIR/bin/climate-manage db_sync
+}
+
+function start_climate() {
+    screen_it cli-api "cd $CLIMATE_DIR && $CLIMATE_BIN_DIR/climate-api --config-file $CLIMATE_CONF"
+    screen_it cli-man "cd $CLIMATE_DIR && $CLIMATE_BIN_DIR/climate-manager --config-file $CLIMATE_CONF"
+}
+
+function stop_climate() {
+    for serv in cli-api cli-man; do
+        screen -S $SCREEN_NAME -p $serv -X kill
+    done
+}
+
+function cleanup_climate() {
+    # Yeah, we're clean as we are
+}
+
+# Restore xtrace
+$XTRACE
+
+# Local variables:
+# mode: shell-script
+# End:
