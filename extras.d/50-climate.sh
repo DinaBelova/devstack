@@ -21,6 +21,7 @@ if is_service_enabled cli-api || is_service_enabled cli-man; then
                     echo_summary "Configuring Climate"
                     configure_climate
                     init_climate
+                    create_climate_accounts
                     ;;
                 extra )
                     echo_summary "Starting Climate"
