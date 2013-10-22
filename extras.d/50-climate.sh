@@ -9,7 +9,7 @@ if is_service_enabled climate; then
             # NOTE: Yes, I'm hardcoding this URLs here. I know it's bad. Hit me.
             CLIMATE_REPO=${CLIMATE_REPO:-${GIT_BASE}/DinaBelova/climate.git}
             CLIMATE_BRANCH=${CLIMATE_BRANCH:-master}
-            CLIMATECLIENT_REPO=${CLIMATE_REPO:-${GIT_BASE}/DinaBelova/python-climateclient.git}
+            CLIMATECLIENT_REPO=${CLIMATECLIENT_REPO:-${GIT_BASE}/DinaBelova/python-climateclient.git}
             CLIMATECLIENT_BRANCH=${CLIMATE_BRANCH:-master}
             source $TOP_DIR/lib/climate
             ;;
