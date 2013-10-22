@@ -88,6 +88,48 @@ function init_climate() {
     # $CLIMATE_DIR/bin/climate-manage db_sync
 }
 
+function create_climate_accounts() {
+    SERVICE_TENANT=$(keystone tenant-list | awk "/ $SERVICE_TENANT_NAME / { print \$2 }")
+    ADMIN_ROLE=$(keystone role-list | awk "/ admin / { print \$2 }")
+
+    CLIMATE_USER=$(keystone user-create \
+        --name=climate \
+        --pass="$SERVICE_PASSWORD" \
+        --tenant_id $SERVICE_TENANT \
+        --email=climate@example.com \
+        | grep " id " | get_field 2)
+    keystone user-role-add \
+        --tenant-id $SERVICE_TENANT \
+        --user-id $NOVA_USER \
+        --role-id $ADMIN_ROLE
+    if [[ "$KEYSTONE_CATALOG_BACKEND" != 'sql' ]]; then
+        die "Climate here doesn't support catalog backends other than SQL yet"
+    fi
+    CLIMATE_SERVICE=$(keystone service-create \
+        --name=climate \
+        --type=reservation \
+        --description="Climate Reservation Service" \
+        | grep " id " | get_field 2)
+    keystone endpoint-create \
+        --region RegionOne \
+        --service_id $CLIMATE_SERVICE \
+        --publicurl "http://$CLIMATE_SERVICE_HOST:$CLIMATE_SERVICE_PORT/v1" \
+        --adminurl "http://$CLIMATE_SERVICE_HOST:$CLIMATE_SERVICE_PORT/v1"
+
+    # We need Keystone v3 URLs here. Clients don't like is, so we use separate service type for them
+    KEYSTONEV3_SERVICE=$(keystone service-create \
+        --name keystone \
+        --type identityv3 \
+        --description "Keystone Identity Service" \
+        | grep " id " | get_field 2)
+    keystone endpoint-create \
+        --region RegionOne \
+        --service_id $KEYSTONEV3_SERVICE \
+        --publicurl "$KEYSTONE_SERVICE_PROTOCOL://$KEYSTONE_SERVICE_HOST:$KEYSTONE_SERVICE_PORT/v3" \
+        --adminurl "$KEYSTONE_AUTH_PROTOCOL://$KEYSTONE_AUTH_HOST:$KEYSTONE_AUTH_PORT/v3" \
+        --internalurl "$KEYSTONE_SERVICE_PROTOCOL://$KEYSTONE_SERVICE_HOST:$KEYSTONE_SERVICE_PORT/v3"
+}
+
 function start_climate() {
     screen_it cli-api "cd $CLIMATE_DIR && $CLIMATE_BIN_DIR/climate-api --config-file $CLIMATE_CONF"
     screen_it cli-man "cd $CLIMATE_DIR && $CLIMATE_BIN_DIR/climate-manager --config-file $CLIMATE_CONF"
