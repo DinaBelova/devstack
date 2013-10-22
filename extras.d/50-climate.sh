@@ -3,9 +3,6 @@
 if is_service_enabled climate; then
     case "$1" in
         source )
-            # Just so that we have utterly pretty localrc
-            enable_sevice cli-api
-            enable_sevice cli-man
             # NOTE: Yes, I'm hardcoding this URLs here. I know it's bad. Hit me.
             CLIMATE_REPO=${CLIMATE_REPO:-${GIT_BASE}/DinaBelova/climate.git}
             CLIMATE_BRANCH=${CLIMATE_BRANCH:-master}
@@ -28,6 +25,9 @@ if is_service_enabled climate; then
                     ;;
                 extra )
                     echo_summary "Starting Climate"
+                    # Just so that we have utterly pretty localrc
+                    enable_sevice cli-api
+                    enable_sevice cli-man
                     start_climate
                     ;;
             esac
