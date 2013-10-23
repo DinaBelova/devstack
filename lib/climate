@@ -104,7 +104,7 @@ function create_climate_accounts() {
         | grep " id " | get_field 2)
     keystone user-role-add \
         --tenant-id $SERVICE_TENANT \
-        --user-id $NOVA_USER \
+        --user-id $CLIMATE_USER \
         --role-id $ADMIN_ROLE
     if [[ "$KEYSTONE_CATALOG_BACKEND" != 'sql' ]]; then
         die "Climate here doesn't support catalog backends other than SQL yet"
