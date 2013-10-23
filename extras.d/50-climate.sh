@@ -26,8 +26,8 @@ if is_service_enabled climate; then
                 extra )
                     echo_summary "Starting Climate"
                     # Just so that we have utterly pretty localrc
-                    enable_sevice cli-api
-                    enable_sevice cli-man
+                    enable_service cli-api
+                    enable_service cli-man
                     start_climate
                     ;;
             esac
