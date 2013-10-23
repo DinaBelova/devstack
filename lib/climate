@@ -149,6 +149,7 @@ function stop_climate() {
 
 function cleanup_climate() {
     # Yeah, we're clean as we are
+    :
 }
 
 # Restore xtrace
