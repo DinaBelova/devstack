@@ -33,7 +33,6 @@ if is_service_enabled climate; then
             esac
             ;;
         unstack )
-            echo_summary "Stopping Climate"
             stop_climate
             ;;
         clean )
